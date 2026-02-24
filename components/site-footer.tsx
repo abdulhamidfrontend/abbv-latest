@@ -64,7 +64,7 @@ export function SiteFooter() {
             {'2026 ABBV. All rights reserved.'}
           </p>
           <div className="flex gap-6">
-            <a href="hhttps://www.instagram.com/abbv.uz" className="text-xs text-muted-foreground">Instagram</a>
+            <a href="https://www.instagram.com/abbv.uz" className="text-xs text-muted-foreground">Instagram</a>
             <div className="h-4 bg-gray-400 w-[1px]"></div>
             <a href="https://t.me/abbv_uz" className="text-xs text-muted-foreground">Telegram</a>
           </div>

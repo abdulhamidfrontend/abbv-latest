@@ -30,12 +30,12 @@ export default function PaymentPage() {
     cardName: "",
   })
 
-  const postalCodeRegex: Record<string, RegExp> = {
-    Uzbekistan: /^[1-9]\d{4}$/, // 10000–99999
-    Kazakhstan: /^\d{6}$/,       // 6 raqam
-    Kyrgyzstan: /^\d{6}$/,       // 6 raqam
-    Tajikistan: /^\d{6}$/,       // 6 raqam
-  }
+const postalCodeRegex: Record<string, RegExp> = {
+  Uzbekistan: /^\d{6}$/,   // 6 raqamli
+  Kazakhstan: /^\d{6}$/,   // 6 raqamli
+  Kyrgyzstan: /^\d{6}$/,   // 6 raqamli
+  Tajikistan: /^\d{6}$/,   // 6 raqamli
+}
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -49,16 +49,16 @@ export default function PaymentPage() {
       return
     }
 
-    if (!formData.country) {
-      toast.error("Please select a country")
-      return
-    }
+   if (!formData.country) {
+  toast.error("Please select a country")
+  return
+}
 
-    const regex = postalCodeRegex[formData.country]
-    if (!regex.test(formData.postalCode)) {
-      toast.error(`Invalid postal code for ${formData.country}`)
-      return
-    }
+const regex = postalCodeRegex[formData.country]
+if (!regex.test(formData.postalCode)) {
+  toast.error(`Invalid postal code for ${formData.country}`)
+  return
+}
 
     clearCart()
     toast.success("Order placed successfully!")
