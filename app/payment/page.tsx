@@ -30,6 +30,13 @@ export default function PaymentPage() {
     cardName: "",
   })
 
+  const postalCodeRegex: Record<string, RegExp> = {
+    Uzbekistan: /^[1-9]\d{4}$/, // 10000–99999
+    Kazakhstan: /^\d{6}$/,       // 6 raqam
+    Kyrgyzstan: /^\d{6}$/,       // 6 raqam
+    Tajikistan: /^\d{6}$/,       // 6 raqam
+  }
+
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
@@ -41,6 +48,18 @@ export default function PaymentPage() {
       toast.error("Please fill in all fields")
       return
     }
+
+    if (!formData.country) {
+      toast.error("Please select a country")
+      return
+    }
+
+    const regex = postalCodeRegex[formData.country]
+    if (!regex.test(formData.postalCode)) {
+      toast.error(`Invalid postal code for ${formData.country}`)
+      return
+    }
+
     clearCart()
     toast.success("Order placed successfully!")
     router.push("/")
@@ -111,7 +130,7 @@ export default function PaymentPage() {
                   <h2 className="text-sm font-medium uppercase tracking-[0.2em]">
                     Shipping Address
                   </h2>
-                  <div className="flex gap-4">
+                  <div className="flex max-[530px]:flex-col gap-4">
                     <input
                       type="text"
                       value={formData.firstName}
@@ -150,13 +169,18 @@ export default function PaymentPage() {
                       className="w-1/3 border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
                     />
                   </div>
-                  <input
-                    type="text"
+
+                  <select
                     value={formData.country}
                     onChange={(e) => updateField("country", e.target.value)}
-                    placeholder="Country"
                     className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
-                  />
+                  >
+                    <option value="">Select country</option>
+                    <option value="Uzbekistan">Uzbekistan</option>
+                    <option value="Kazakhstan">Kazakhstan</option>
+                    <option value="Kyrgyzstan">Kyrgyzstan</option>
+                    <option value="Tajikistan">Tajikistan</option>
+                  </select>
                 </div>
 
                 {/* Payment */}
