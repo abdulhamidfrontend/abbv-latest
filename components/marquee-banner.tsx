@@ -1,5 +1,5 @@
 export function MarqueeBanner() {
-  const text = "FREE SHIPPING ON ORDERS OVER $200"
+  const text = "WORLDWIDE SHIPPING SOON"
   const repeats = Array.from({ length: 10 })
 
   return (
