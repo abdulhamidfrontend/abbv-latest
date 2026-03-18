@@ -8,21 +8,51 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { toast } from "sonner"
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useStore()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (!email || !password) {
-      toast.error("Please fill in all fields")
+      toast.error("Iltimos, barcha maydonlarni to'ldiring")
       return
     }
-    login(email, email.split("@")[0])
-    toast.success("Welcome back")
-    router.push("/")
+
+    setLoading(true)
+
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast.error(data.message || "Kirish amalga oshmadi")
+        return
+      }
+
+      localStorage.setItem("token", data.token)
+      localStorage.setItem("user", JSON.stringify(data.user))
+
+      login(data.user.email, data.user.name)
+
+      toast.success("Xush kelibsiz!")
+      router.push("/")
+    } catch {
+      toast.error("Server bilan bog'lanishda xatolik")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -50,7 +80,8 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
+                disabled={loading}
+                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none disabled:opacity-50"
               />
             </div>
 
@@ -64,15 +95,17 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
+                disabled={loading}
+                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none disabled:opacity-50"
               />
             </div>
 
             <button
               type="submit"
-              className="mt-2 w-full bg-foreground py-4 text-xs uppercase tracking-[0.25em] text-background transition-colors hover:bg-foreground/90"
+              disabled={loading}
+              className="mt-2 w-full bg-foreground py-4 text-xs uppercase tracking-[0.25em] text-background transition-colors hover:bg-foreground/90 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Sign In
+              {loading ? "Kirish..." : "Sign In"}
             </button>
           </form>
 

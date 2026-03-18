@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
 import { Minus, Plus, X } from "lucide-react"
 import { useStore } from "@/lib/store-context"
@@ -9,6 +8,9 @@ import { SiteFooter } from "@/components/site-footer"
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, cartTotal } = useStore()
+
+  const shipping = cartTotal >= 200 ? 0 : 15
+  const total = cartTotal + shipping
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -36,17 +38,18 @@ export default function CartPage() {
                 <div className="flex flex-col">
                   {cart.map((item) => (
                     <div
-                      key={`${item.product.id}-${item.size}`}
+                      key={item.id}
                       className="flex gap-6 border-b border-border py-8 first:border-t"
                     >
                       {/* Image */}
-                      <Link href={`/product/${item.product.id}`} className="relative h-32 w-24 flex-shrink-0 bg-secondary">
-                        <Image
-                          src={item.product.image}
-                          alt={item.product.name}
-                          fill
-                          className="object-cover"
-                          sizes="96px"
+                      <Link
+                        href={`/product/${item.productId}`}
+                        className="relative h-32 w-24 flex-shrink-0 bg-secondary"
+                      >
+                        <img
+                          src={item.image || "/placeholder.jpg"}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
                         />
                       </Link>
 
@@ -54,15 +57,20 @@ export default function CartPage() {
                       <div className="flex flex-1 flex-col justify-between">
                         <div className="flex items-start justify-between">
                           <div className="flex flex-col gap-1">
-                            <Link href={`/product/${item.product.id}`} className="text-sm font-medium tracking-wide">
-                              {item.product.name}
+                            <Link
+                              href={`/product/${item.productId}`}
+                              className="text-sm font-medium tracking-wide hover:underline"
+                            >
+                              {item.name}
                             </Link>
-                            <p className="text-xs text-muted-foreground">
-                              Size: {item.size}
-                            </p>
+                            {item.size && (
+                              <p className="text-xs text-muted-foreground">
+                                Size: {item.size}
+                              </p>
+                            )}
                           </div>
                           <button
-                            onClick={() => removeFromCart(item.product.id, item.size)}
+                            onClick={() => removeFromCart(item.id)}
                             className="text-muted-foreground transition-colors hover:text-foreground"
                             aria-label="Remove item"
                           >
@@ -74,15 +82,8 @@ export default function CartPage() {
                           {/* Quantity */}
                           <div className="flex items-center border border-border">
                             <button
-                              onClick={() =>
-                                updateQuantity(
-                                  item.product.id,
-                                  item.size,
-                                  item.quantity - 1
-                                )
-                              }
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
                               className="flex h-9 w-9 items-center justify-center transition-colors hover:bg-secondary"
-                              aria-label="Decrease quantity"
                             >
                               <Minus className="h-3 w-3" />
                             </button>
@@ -90,22 +91,15 @@ export default function CartPage() {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() =>
-                                updateQuantity(
-                                  item.product.id,
-                                  item.size,
-                                  item.quantity + 1
-                                )
-                              }
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
                               className="flex h-9 w-9 items-center justify-center transition-colors hover:bg-secondary"
-                              aria-label="Increase quantity"
                             >
                               <Plus className="h-3 w-3" />
                             </button>
                           </div>
 
                           <p className="text-sm font-medium">
-                            ${item.product.price * item.quantity}
+                            ${(item.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -123,18 +117,16 @@ export default function CartPage() {
                   <div className="flex flex-col gap-4">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Subtotal</span>
-                      <span>${cartTotal}</span>
+                      <span>${cartTotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Shipping</span>
-                      <span>{cartTotal >= 200 ? "Free" : "$15"}</span>
+                      <span>{shipping === 0 ? "Free" : `$${shipping}`}</span>
                     </div>
                     <div className="border-t border-border pt-4">
                       <div className="flex justify-between text-sm font-medium">
                         <span>Total</span>
-                        <span>
-                          ${cartTotal >= 200 ? cartTotal : cartTotal + 15}
-                        </span>
+                        <span>${total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>

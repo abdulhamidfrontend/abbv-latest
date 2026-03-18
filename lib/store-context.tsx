@@ -1,26 +1,32 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
-import type { Product } from "./products"
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 
 export interface CartItem {
-  product: Product
+  id: string
+  productId: string
+  name: string
+  image: string
+  price: number
   size: string
   quantity: number
 }
 
 interface User {
+  id: string
   email: string
   name: string
+  isAdmin: boolean
 }
 
 interface StoreContextType {
   cart: CartItem[]
   favourites: string[]
   user: User | null
-  addToCart: (product: Product, size: string) => void
-  removeFromCart: (productId: string, size: string) => void
-  updateQuantity: (productId: string, size: string, quantity: number) => void
+  hydrated: boolean
+  addToCart: (item: CartItem) => void
+  removeFromCart: (id: string) => void
+  updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
   toggleFavourite: (productId: string) => void
   isFavourite: (productId: string) => boolean
@@ -36,55 +42,85 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([])
   const [favourites, setFavourites] = useState<string[]>([])
   const [user, setUser] = useState<User | null>(null)
+  const [hydrated, setHydrated] = useState(false)
 
-  const addToCart = useCallback((product: Product, size: string) => {
+  // Refresh bo'lganda localStorage dan o'qish
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("user")
+      const token = localStorage.getItem("token")
+      if (storedUser && token) {
+        const parsed = JSON.parse(storedUser)
+        setUser({
+          id: parsed.id || parsed._id || "",
+          email: parsed.email || "",
+          name: parsed.name || "",
+          isAdmin: parsed.isAdmin || false,
+        })
+      }
+    } catch {
+      localStorage.removeItem("user")
+      localStorage.removeItem("token")
+    }
+
+    try {
+      const storedFavs = localStorage.getItem("favourites")
+      if (storedFavs) setFavourites(JSON.parse(storedFavs))
+    } catch {
+      localStorage.removeItem("favourites")
+    }
+
+    try {
+      const storedCart = localStorage.getItem("cart")
+      if (storedCart) setCart(JSON.parse(storedCart))
+    } catch {
+      localStorage.removeItem("cart")
+    }
+
+    setHydrated(true)
+  }, [])
+
+  // Cart o'zgarganda localStorage ga saqlash
+  useEffect(() => {
+    if (hydrated) localStorage.setItem("cart", JSON.stringify(cart))
+  }, [cart, hydrated])
+
+  // Favourites o'zgarganda localStorage ga saqlash
+  useEffect(() => {
+    if (hydrated) localStorage.setItem("favourites", JSON.stringify(favourites))
+  }, [favourites, hydrated])
+
+  const addToCart = useCallback((item: CartItem) => {
     setCart((prev) => {
-      const existing = prev.find(
-        (item) => item.product.id === product.id && item.size === size
-      )
+      const existing = prev.find(i => i.productId === item.productId && i.size === item.size)
       if (existing) {
-        return prev.map((item) =>
-          item.product.id === product.id && item.size === size
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+        return prev.map(i =>
+          i.productId === item.productId && i.size === item.size
+            ? { ...i, quantity: i.quantity + item.quantity }
+            : i
         )
       }
-      return [...prev, { product, size, quantity: 1 }]
+      return [...prev, item]
     })
   }, [])
 
-  const removeFromCart = useCallback((productId: string, size: string) => {
-    setCart((prev) =>
-      prev.filter(
-        (item) => !(item.product.id === productId && item.size === size)
-      )
-    )
+  const removeFromCart = useCallback((id: string) => {
+    setCart((prev) => prev.filter(i => i.id !== id))
   }, [])
 
-  const updateQuantity = useCallback(
-    (productId: string, size: string, quantity: number) => {
-      if (quantity <= 0) {
-        removeFromCart(productId, size)
-        return
-      }
-      setCart((prev) =>
-        prev.map((item) =>
-          item.product.id === productId && item.size === size
-            ? { ...item, quantity }
-            : item
-        )
-      )
-    },
-    [removeFromCart]
-  )
+  const updateQuantity = useCallback((id: string, quantity: number) => {
+    if (quantity <= 0) {
+      setCart((prev) => prev.filter(i => i.id !== id))
+      return
+    }
+    setCart((prev) => prev.map(i => i.id === id ? { ...i, quantity } : i))
+  }, [])
 
   const clearCart = useCallback(() => setCart([]), [])
 
   const toggleFavourite = useCallback((productId: string) => {
     setFavourites((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
+      prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
     )
   }, [])
 
@@ -94,38 +130,43 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   )
 
   const login = useCallback((email: string, name: string) => {
-    setUser({ email, name })
+    try {
+      const stored = localStorage.getItem("user")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        setUser({
+          id: parsed.id || parsed._id || "",
+          email: parsed.email || email,
+          name: parsed.name || name,
+          isAdmin: parsed.isAdmin || false,
+        })
+      } else {
+        setUser({ id: "", email, name, isAdmin: false })
+      }
+    } catch {
+      setUser({ id: "", email, name, isAdmin: false })
+    }
   }, [])
 
   const logout = useCallback(() => {
     setUser(null)
+    setCart([])
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+    localStorage.removeItem("cart")
   }, [])
 
-  const cartTotal = cart.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  )
-
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
   return (
-    <StoreContext.Provider
-      value={{
-        cart,
-        favourites,
-        user,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        toggleFavourite,
-        isFavourite,
-        login,
-        logout,
-        cartTotal,
-        cartCount,
-      }}
-    >
+    <StoreContext.Provider value={{
+      cart, favourites, user, hydrated,
+      addToCart, removeFromCart, updateQuantity, clearCart,
+      toggleFavourite, isFavourite,
+      login, logout,
+      cartTotal, cartCount,
+    }}>
       {children}
     </StoreContext.Provider>
   )
@@ -133,8 +174,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
 export function useStore() {
   const context = useContext(StoreContext)
-  if (!context) {
-    throw new Error("useStore must be used within a StoreProvider")
-  }
+  if (!context) throw new Error("useStore must be used within a StoreProvider")
   return context
 }

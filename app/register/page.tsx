@@ -8,6 +8,8 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { toast } from "sonner"
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
 export default function RegisterPage() {
   const router = useRouter()
   const { login } = useStore()
@@ -15,24 +17,52 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (!name || !email || !password || !confirmPassword) {
-      toast.error("Please fill in all fields")
+      toast.error("Iltimos, barcha maydonlarni to'ldiring")
       return
     }
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match")
+      toast.error("Parollar mos kelmadi")
       return
     }
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters")
+      toast.error("Parol kamida 6 ta belgidan iborat bo'lishi kerak")
       return
     }
-    login(email, name)
-    toast.success("Account created successfully")
-    router.push("/")
+
+    setLoading(true)
+
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast.error(data.message || "Ro'yxatdan o'tish amalga oshmadi")
+        return
+      }
+
+      localStorage.setItem("token", data.token)
+      localStorage.setItem("user", JSON.stringify(data.user))
+
+      login(data.user.email, data.user.name)
+
+      toast.success("Akkaunt muvaffaqiyatli yaratildi!")
+      router.push("/")
+    } catch {
+      toast.error("Server bilan bog'lanishda xatolik")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -60,7 +90,8 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your full name"
-                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
+                disabled={loading}
+                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none disabled:opacity-50"
               />
             </div>
 
@@ -74,7 +105,8 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
+                disabled={loading}
+                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none disabled:opacity-50"
               />
             </div>
 
@@ -88,7 +120,8 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
+                disabled={loading}
+                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none disabled:opacity-50"
               />
             </div>
 
@@ -102,15 +135,17 @@ export default function RegisterPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repeat your password"
-                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
+                disabled={loading}
+                className="border border-border bg-transparent px-4 py-3.5 text-sm placeholder:text-muted-foreground focus:border-foreground focus:outline-none disabled:opacity-50"
               />
             </div>
 
             <button
               type="submit"
-              className="mt-2 w-full bg-foreground py-4 text-xs uppercase tracking-[0.25em] text-background transition-colors hover:bg-foreground/90"
+              disabled={loading}
+              className="mt-2 w-full bg-foreground py-4 text-xs uppercase tracking-[0.25em] text-background transition-colors hover:bg-foreground/90 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Create Account
+              {loading ? "Yaratilmoqda..." : "Create Account"}
             </button>
           </form>
 
